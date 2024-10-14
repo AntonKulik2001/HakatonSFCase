@@ -1,10 +1,12 @@
 import os
 import logging
+from datetime import datetime, timedelta
 
 from dotenv import load_dotenv
-
 from telegram import ForceReply, Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, CallbackQueryHandler
+
+import vacation_planner
 
 load_dotenv()
 TOKEN = os.getenv('TOKEN')
@@ -12,38 +14,19 @@ TOKEN = os.getenv('TOKEN')
 logging.basicConfig(
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s", level=logging.INFO
 )
-
-logging.getLogger("httpx").setLevel(logging.WARNING)
-
 logger = logging.getLogger(__name__)
-
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    user = update.effective_user
-    await update.message.reply_html(
-        rf"Привет {user.mention_html()}! Этот создан чтобы запланировать твой будующий отуск! Давай начнем",
-        reply_markup=ForceReply(selective=True),
-    )
-    keyboard = [
-        [
-            InlineKeyboardButton("Option 1", callback_data="1"),
-            InlineKeyboardButton("Option 2", callback_data="2"),
-        ],
-        [InlineKeyboardButton("Option 3", callback_data="3")],
-    ]
-
-    reply_markup = InlineKeyboardMarkup(keyboard)
-
-    await update.message.reply_text("Please choose:", reply_markup=reply_markup)
 
 
 def main() -> None:
     """Start the bot."""
     application = Application.builder().token(TOKEN).build()
 
-    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("start", vacation_planner.start))
+    application.add_handler(CallbackQueryHandler(vacation_planner.plan_vacation, pattern=r"^plan_vacation$"))
+    application.add_handler(CallbackQueryHandler(vacation_planner.confirm_plan, pattern=r"^confirm_plan_(.+)$"))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, vacation_planner.view_planned))
 
     application.run_polling(allowed_updates=Update.ALL_TYPES)
-
 
 if __name__ == "__main__":
     main()

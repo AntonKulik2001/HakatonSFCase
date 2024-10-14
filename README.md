@@ -1,2 +1,2 @@
 Для работы бота требуется установить библиотеки:
-pip install python-telegram-bot --upgrade
+`pip install python-telegram-bot --upgrade`
